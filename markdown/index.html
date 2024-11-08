@@ -1,0 +1,190 @@
+first line<br/>
+second line
+<div class="markdown-content">
+# Header 1
+## Header 2
+### Header 3
+#### Header 4
+##### Header 5
+###### Header 6
+# One `more header` showing *italic* and **bold** and ***bold italic*** style
+---
+content
+* list item 1
+* list item 2
+* list item 3
+
+* list item a
+* list `item` b
+* list item c
+
+This shows *an example* to use ***markdown parser***.
+Go to [this very **important** link](https://codingsimplifylife.blogspot.com/) for more **details**.
+
+<script>window.alert("hello world!");</script>
+### Here comes some text
+And more...
+<script>
+function ___md_parse___(text) {
+    function split_nyn(text, pattern) {
+        let matched = text.match(pattern);
+        let not_matched = text.split(pattern);
+        if (matched === null) matched = [];
+        console.assert(matched.length+1===not_matched.length);
+        for (let i=matched.length; i>=0; i--) {
+            matched.splice(i,0,not_matched[i]);
+        }
+        return matched;
+    }
+    function split_javascripts(text) {
+        text=split_nyn(text, /<script(?:(?:)|(?: .*))>.*<\/script>/s);
+        console.log('split_javascripts('+text.length+'):'+text);
+        return text.join('');
+    }
+    return split_javascripts(text);
+}
+// Array.from(document.getElementsByClassName('markdown-content')).map(e=>{e.innerHTML=md_parse(e.innerHTML);});
+window.alert("second javascript activated!\n");
+</script>
+
+From https://issuetracker.google.com/issues/377904514#comment3:
+
+Project: chromium/src\
+Branch: main\
+Author: Josip Sokcevic \<sokcevic@chromium.org\>\
+Link: &nbsp;&nbsp;&nbsp;&nbsp; https://chromium-review.googlesource.com/6001588
+
+[kythe] Use JDK21 with javac_extractor
+
+---
+
+<details>
+
+<summary>Expand for full commit details</summary>
+
+    [kythe] Use JDK21 with javac_extractor 
+     
+    Update prebuilts to pick up the latest javac_extractor version which 
+    supports JDK21, and use JDK21 with javac_extractor. 
+     
+    R=gavinmak@google.com 
+     
+    Bug: 363263205 
+    Bug: 377904514 
+    Change-Id: I19c4d1010b26a309af11c9dcbb5e89e0b4754d0a 
+    Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/6001588 
+    Reviewed-by: Andrew Grieve <agrieve@chromium.org> 
+    Commit-Queue: Josip Sokcevic <sokcevic@chromium.org> 
+    Cr-Commit-Position: refs/heads/main@{#1380025}
+
+---
+
+Files:
+* M `DEPS`
+* M `build/android/gyp/compile_java.py`
+* M `build/config/android/internal_rules.gni`
+* M `third_party/android_prebuilts/build_tools`
+
+---
+
+Hash: 5a39d34012181cb7496347778517841f5deff109\
+Date:&nbsp; Thu Nov 07 23:49:36 2024
+
+</details>
+
+---
+
+From https://issuetracker.google.com/issues/377923484#comment1:
+
+When decoding h264 stream on an ARM board from Texas Instruments with an AM62P SoC (https://www.ti.com/tool/PROCESSOR-SDK-AM62P), we see the following error:
+
+```
+DecodeComponent: Work with bitstreamId=105 not found, already abandoned?
+```
+
+This happens because `v4l2_codec2` associates each input (`OUTPUT`) buffer with a single output (`CAPTURE`) buffer using `bitstreamId`.
+
+`bitstreamId` is passed to the kernel via the timestamp. This is the recommended way according to the v4l2 spec:
+
+> To allow matching decoded CAPTURE buffers with OUTPUT buffers they originated from, the client can set the timestamp field of the v4l2_buffer struct when queuing an OUTPUT buffer. The CAPTURE buffer(s), which resulted from decoding that OUTPUT buffer will have their timestamp field set to the same value when dequeued
+
+See: https://www.kernel.org/doc/html/latest/userspace-api/media/v4l/dev-decoder.html#decoding
+
+By only allowing 1 output (`CAPTURE`) buffer per input (`OUTPUT`) buffer, the `v4l2_codec2` HAL violates the following v4l2 spec:
+
+> The client must not assume any direct relationship between `CAPTURE` and `OUTPUT` buffers and any specific timing of buffers becoming available to dequeue. Specifically:
+> * a buffer queued to `OUTPUT` may result in no buffers being produced on `CAPTURE` (e.g. if it does not contain encoded data, or if only metadata syntax structures are present in it),
+> * a buffer queued to `OUTPUT` may result in more than one buffer produced on `CAPTURE` (if the encoded data contained more than one frame, or if returning a decoded frame allowed the decoder to return a frame that preceded it in decode, but succeeded it in the display order),
+> * a buffer queued to `OUTPUT` may result in a buffer being produced on `CAPTURE` later into decode process, and/or after processing further OUTPUT buffers, or be returned out of order, e.g. if display reordering is used,
+> * buffers may become available on the `CAPTURE` queue without additional buffers queued to `OUTPUT` (e.g. during drain or EOS), because of the `OUTPUT` buffers queued in the past whose decoding results are only available at later time, due to specifics of the decoding process.
+See: https://www.kernel.org/doc/html/latest/userspace-api/media/v4l/dev-decoder.html#decoding
+
+Reworking the buffer tracking in `v4l2_codec2` might be a difficult task. Are there any plans to address this?
+
+From https://issuetracker.google.com/issues/377047085#comment14:
+
+Hi Jiyong,
+
+## 1. Without commenting out chown in VirtualizationService, 
+I have modified in "android14/system/core/rootdir/init.rc"
+
+```makefile
+diff --git a/rootdir/init.rc b/rootdir/init.rc
+index 8c83e5b..e5a1087 100644
+--- a/rootdir/init.rc
++++ b/rootdir/init.rc
+@@ -861,7 +861,7 @@ on post-fs-data
+     # Delete any stale files owned by the old virtualizationservice uid (b/230056726).
+     chmod 0770 /data/misc/virtualizationservice
+     exec - virtualizationservice system -- /bin/rm -rf /data/misc/virtualizationservice
+-    mkdir /data/misc/virtualizationservice 0771 system system
++    mkdir /data/misc/virtualizationservice 0771 root root
+
+     # /data/preloads uses encryption=None because it only contains preloaded
+     # files that are public information, similar to the system image.
+
+```
+
+and "android14/packages/modules/Virtualization/apex/virtualizationservice.rc",  **"chown"** no longer reports an error.
+
+```txt
+--- a/apex/virtualizationservice.rc
++++ b/apex/virtualizationservice.rc
+@@ -14,8 +14,8 @@
+
+ service virtualizationservice /apex/com.android.virt/bin/virtualizationservice
+     class main
+-    user system
+-    group system
++    user root
++    group root
+     interface aidl android.system.virtualizationservice
+     disabled
+     oneshot
+```
+
+
+### Question: **If our target is production, are such modifications acceptable?**  
+----  
+  
+
+## 2. With such modifications above, a new issue has arisen.
+
+```shell
+x9sp_ms:/ # /apex/com.android.virt/bin/vm run-microdroid --debug none
+found path /apex/com.android.virt/app/EmptyPayloadApp@UQ1A.240205.004.B1/EmptyPayloadApp.apk
+creating work dir /data/local/tmp/microdroid/aghomLXLtYRsMGkGo
+apk.idsig path: /data/local/tmp/microdroid/aghomLXLtYRsMGkGo/apk.idsig
+instance.img path: /data/local/tmp/microdroid/aghomLXLtYRsMGkGo/instance.img
+Created VM from "/apex/com.android.virt/app/EmptyPayloadApp@UQ1A.240205.004.B1/EmptyPayloadApp.apk"!PayloadConfig(VirtualMachinePayloadConfig { payloadBinaryName: "MicrodroidEmptyPayloadJniLib.so" })
+Error: Failed to create VM
+
+Caused by:
+    Status(-8, EX_SERVICE_SPECIFIC): '-1: Failed to make composite image: Failed to open partition image: failed to read header: Is a directory (os error 21)'
+
+```
+Attached with the Android log.
+
+</div>
+last line
+<script src="./index.js"></script>
