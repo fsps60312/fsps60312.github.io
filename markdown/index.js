@@ -47,6 +47,13 @@ function md_parse(text) {
             .replace(/\\'/g, '&#039;')
         return split_md_link(text);
     }
+    function escape_html_characters(text) {
+        return text.replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;')
+    }
     function md_parse_lines(text) {
         return text.split('\n').map(line => {
             line = line.trimEnd();
@@ -58,12 +65,69 @@ function md_parse(text) {
             else if (line.startsWith('##### ')) return '<h5>' + md_parse_sentence(line.substring(6)) + '</h5>';
             else if (line.startsWith('###### ')) return '<h6>' + md_parse_sentence(line.substring(7)) + '</h6>';
             else if (line.startsWith('* ')) return '<ul><li>' + md_parse_sentence(line.substring(2)) + '</li></ul>';
+            else if (line.startsWith('  * ')) return '<ul><ul><li>' + md_parse_sentence(line.substring(4)) + '</li></ul></ul>';
             else if (line.endsWith('\\')) return md_parse_sentence(line.substring(0, line.length - 1)) + '<br/>';
             else return md_parse_sentence(line);
-        }).join('\n').replaceAll('</li></ul>\n<ul><li>', '</li>\n<li>');
+        }).join('\n').replaceAll('</ul>\n<ul>', '\n').replaceAll('</ul>\n<ul>', '\n');
+    }
+    function md_parse_tables(text) {
+        text = split_nyn(text.trim(), /\|(?: *:?-+:? *\|)+\n/g);
+        text = text.slice(0, 2).concat([text.slice(2).join('')]);
+        console.assert(text.length === 3);
+        function md_convert_separator(text) {
+            console.assert(text.startsWith('|') && text.endsWith('|'));
+            return text.slice(1, -1).split('|').map(v => v.trim()).map(v => {
+                if (v.startsWith(':') && v.endsWith(':')) return ' style="text-align: center;"';
+                else if (v.startsWith(':')) return ' style="text-align: left;"';
+                else if (v.endsWith(':')) return ' style="text-align: right;"';
+                else return '';
+            });
+        }
+        function md_parse_table_headers(text, separator) {
+            console.assert(text.startsWith('|') && text.endsWith('|'));
+            text = text.slice(1, -1).split('|');
+            for (let i = 0; i < text.length; i++) {
+                text[i] = '   <th' + (i < separator.length ? separator[i] : '') + '>\n' + md_parse_lines(text[i]) + '\n   </th>\n';
+            }
+            return '  <tr>\n' + text.join('') + '  </tr>';
+        }
+        function md_parse_table_row(text, separator) {
+            console.assert(text.startsWith('|') && text.endsWith('|'));
+            text = text.slice(1, -1).split('|');
+            for (let i = 0; i < text.length; i++) {
+                text[i] = '   <td' + (i < separator.length ? separator[i] : '') + '>\n' + md_parse_lines(text[i]) + '\n   </td>\n';
+            }
+            return text.join('');
+        }
+        function md_parse_table_contents(text, separator) {
+            text = text.split('\n');
+            for (let i = 0; i < text.length; i++) {
+                text[i] = md_parse_table_row(text[i], separator);
+            }
+            return '  <tr>\n' + text.join('  </tr>\n  <tr>\n') + '\n  </tr>';
+        }
+        let header = text[0].trim();
+        let separator = md_convert_separator(text[1].trim());
+        let content = text[2].trim();
+        return '<table style="border-collapse: collapse;" border=1px cellpadding=10%>\n <thead>\n'
+            + md_parse_table_headers(header, separator)
+            + '\n </thead>\n <tbody>\n'
+            + md_parse_table_contents(content, separator)
+            + '\n </tbody>\n</table>';
+    }
+    function split_md_tables(text) {
+        text = split_nyn(text, /(?:^|\n)\|(?:[^|]+\|)+\n\|(?: *:?-+:? *\|)+\n(?:\|(?:[^|]+\|)+(?:$|\n))+/g);
+        // console.log('split_md_tables('+text.length+'):'+text);
+        for (let i = 1; i < text.length; i += 2) {
+            text[i] = md_parse_tables(text[i]);
+        }
+        for (let i = 0; i < text.length; i += 2) {
+            text[i] = md_parse_lines(text[i]);
+        }
+        return text.join('');
     }
     function md_parse_paragraph(text) {
-        return md_parse_lines(text);
+        return split_md_tables(text);
     }
     function md_split_paragraph(text) {
         text = text.split(/\n\n+/g).map(p => md_parse_paragraph(p));
@@ -72,7 +136,7 @@ function md_parse(text) {
     function md_decorate_codeblock(text) {
         return '<pre tabindex="-1" style="color: #202124; font-style: inherit; letter-spacing: .0142857143em; font-weight: 400; font-size: .8125rem; word-break: break-word; overflow-wrap: break-word; background-color: #f8f9fa; border-radius: 2px; font-family: WorkAroundWebKitAndMozilla,monospace; border: 1px solid; overflow-x: auto; padding: 8px 16px; line-height: 1.5;">'
             + '<code style="padding: 0; white-space: pre;">'
-            + text
+            + escape_html_characters(text)
             + '</code></pre>';
     }
     function split_alternative_md_codeblocks(text) {
@@ -115,7 +179,7 @@ function md_parse(text) {
         return md_decorate_codeblock(text);
     }
     function split_md_codeblocks(text) {
-        text = split_nyn(text, /(?:^|\n)```[a-z]*\n(?:(?!```).)*\n```(?:&|\n)/sg)
+        text = split_nyn(text, /(?:^|\n)```[a-z]*\n(?:(?!```).)*\n```(?:$|\n)/sg);
         // console.log('split_md_codeblocks('+text.length+'):'+text);
         for (let i = 1; i < text.length; i += 2) {
             text[i] = md_parse_codeblocks(text[i]);

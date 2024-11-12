@@ -1,0 +1,55 @@
+{
+    "": [
+        "",
+        "^",
+        "^#",
+        "^# ",
+        "^##",
+        "^## ",
+        "^###",
+        "^### ",
+        "^####",
+        "^#### ",
+        "^#####",
+        "^##### ",
+        "^######",
+        "^###### ",
+    ],
+    "markdown: start of line": {
+        "*": {
+            "switch": "markdown: start: *?"
+        },
+        "#": {
+            "switch": "markdown: start: #?"
+        },
+        " ": {
+            "switch": "markdown: start: 1s?"
+        },
+        "\n": {
+            "switch": "markdown: empty line",
+            "output": "<br/>"
+        },
+        "": {
+            "fallback": "markdown: normal text"
+        }
+    },
+    "markdown: empty line": {
+        "\n":
+    },
+    "markdown: start: *?": {
+        "": {
+            "fallback": "markdown: *?"
+        }
+    },
+    "markdown: start: #?": {
+        "": {
+            "fallback": "markdown: normal text"
+        }
+    },
+    "markdown: start: 1s?": {
+        "": {
+            "fallback": "markdown: normal text"
+        }
+    },
+    "markdown: normal text": {}
+}
